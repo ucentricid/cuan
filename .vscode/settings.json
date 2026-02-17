@@ -1,0 +1,15 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "103.127.139.112",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "UcentricID",
+            "username": "postgres",
+            "database": "ucentric_apps",
+            "password": "2En3SaZ2vnyWgttkTWnXYR9UnSekGCMQcko8Bf4PvL5GVyFJYeGFnZBuJkDLwZ5o"
+        }
+    ]
+}
