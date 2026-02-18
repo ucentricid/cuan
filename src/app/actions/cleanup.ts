@@ -12,13 +12,14 @@ export async function cleanupDuplicateAccounts() {
         });
 
         // Group by userId
-        const grouped = allAccounts.reduce((acc, account) => {
+        // Group by userId
+        const grouped = allAccounts.reduce<Record<string, typeof allAccounts>>((acc, account) => {
             if (!acc[account.userId]) {
                 acc[account.userId] = [];
             }
             acc[account.userId].push(account);
             return acc;
-        }, {} as Record<string, any[]>);
+        }, {});
 
         let deletedCount = 0;
 
