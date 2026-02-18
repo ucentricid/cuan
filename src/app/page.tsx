@@ -53,10 +53,42 @@ export default function Dashboard() {
   }, [userEmail]);
 
   const handleCopyReferral = async () => {
-    if (referralUrl) {
-      await navigator.clipboard.writeText(referralUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+    if (!referralUrl) return;
+
+    try {
+      // Try modern API first
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(referralUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        return;
+      }
+    } catch (err) {
+      console.warn('Clipboard API failed, trying fallback...');
+    }
+
+    // Fallback for older browsers or non-secure contexts
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = referralUrl;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      const success = document.execCommand('copy');
+      document.body.removeChild(textArea);
+
+      if (success) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        throw new Error('Fallback failed');
+      }
+    } catch (err) {
+      console.error('Copy failed:', err);
+      alert('Gagal menyalin link. Mohon copy secara manual.');
     }
   };
 
