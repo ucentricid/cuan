@@ -1,7 +1,6 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 
 export type PaymentHistoryItem = {
     id: string;
@@ -45,13 +44,13 @@ export async function getPaymentHistory(email: string): Promise<{ success: boole
             id: p.id.toString(),
             orderId: p.order_id,
             amount: Number(p.amount),
-            date: p.created_at.toLocaleDateString('id-ID', {
+            date: (p.created_at || new Date()).toLocaleDateString('id-ID', {
                 day: 'numeric',
                 month: 'short',
                 year: 'numeric'
             }),
-            status: p.status,
-            createdAt: p.created_at
+            status: p.status || 'pending',
+            createdAt: p.created_at || new Date()
         }));
 
         return {
