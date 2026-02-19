@@ -47,8 +47,12 @@ export default function ProfilePage() {
         if (!userEmail) return;
         const result = await upsertPaymentAccount(userEmail, data);
         if (result.success) {
-            await fetchAccounts();
+            // Immediately update local state with the returned account
+            setPaymentAccount(result.account);
             setShowAddModal(false);
+
+            // Optionally fetch to ensure sync, but UI is already updated
+            fetchAccounts();
         } else {
             alert(result.message);
         }

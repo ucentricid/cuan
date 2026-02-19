@@ -1,6 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
 
 export type BankDetails = {
@@ -121,5 +122,57 @@ export async function createWithdrawal(email: string, bankDetails: BankDetails) 
     } catch (error) {
         console.error('createWithdrawal error:', error);
         return { success: false, message: 'Gagal memproses penarikan' };
+    }
+}
+
+export async function getWithdrawals(email: string) {
+    try {
+        if (!email) return { success: false, message: 'Email required' };
+
+        const withdrawals = await prisma.withdraw.findMany({
+            where: { user_email: email },
+            orderBy: { created_at: 'desc' },
+            include: { payments: true }
+        });
+
+        // Convert Decimal to string/number for client component compatibility
+        const serializedWithdrawals = withdrawals.map(wd => ({
+            ...wd,
+            payments: wd.payments.map(p => ({
+                ...p,
+                amount: p.amount.toString() // Convert Decimal to string
+            }))
+        }));
+
+        return { success: true, data: serializedWithdrawals };
+    } catch (error) {
+        console.error('getWithdrawals error:', error);
+        return { success: false, message: 'Gagal mengambil riwayat penarikan' };
+    }
+}
+
+export async function cancelWithdrawal(id: string) {
+    try {
+        const withdrawal = await prisma.withdraw.findUnique({
+            where: { id }
+        });
+
+        if (!withdrawal) {
+            return { success: false, message: 'Penarikan tidak ditemukan' };
+        }
+
+        if (withdrawal.status !== 'pending') {
+            return { success: false, message: 'Hanya penarikan pending yang dapat dibatalkan' };
+        }
+
+        await prisma.withdraw.delete({
+            where: { id }
+        });
+
+        revalidatePath('/dompet');
+        return { success: true, message: 'Permintaan penarikan dibatalkan' };
+    } catch (error) {
+        console.error('cancelWithdrawal error:', error);
+        return { success: false, message: 'Gagal membatalkan penarikan' };
     }
 }

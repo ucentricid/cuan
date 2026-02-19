@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
+import { revalidatePath } from 'next/cache';
 
 export async function upsertPaymentAccount(email: string, data: {
     type: 'BANK' | 'E-WALLET';
@@ -27,17 +28,30 @@ export async function upsertPaymentAccount(email: string, data: {
 
         console.log(`[Payment] Found user ID: ${user.id}, proceeding to upsert account`);
 
-        // First, get existing account (any type)
-        const existingAccount = await prisma.paymentAccount.findFirst({
-            where: { userId: user.id }
+        // Get ALL existing accounts to handle potential duplicates
+        const existingAccounts = await prisma.paymentAccount.findMany({
+            where: { userId: user.id },
+            orderBy: { updatedAt: 'desc' } // Most recent first
         });
 
         let account;
 
-        if (existingAccount) {
-            // Update existing account (can change type)
+        if (existingAccounts.length > 0) {
+            // Keep the most recent one
+            const accountToUpdate = existingAccounts[0];
+
+            // Delete any extras (duplicates)
+            if (existingAccounts.length > 1) {
+                const idsToDelete = existingAccounts.slice(1).map(acc => acc.id);
+                await prisma.paymentAccount.deleteMany({
+                    where: { id: { in: idsToDelete } }
+                });
+                console.log(`[Payment] Cleaned up ${idsToDelete.length} duplicate accounts for user ${user.id}`);
+            }
+
+            // Update the kept account
             account = await prisma.paymentAccount.update({
-                where: { id: existingAccount.id },
+                where: { id: accountToUpdate.id },
                 data: {
                     type: data.type,
                     providerName: data.providerName,
@@ -45,7 +59,7 @@ export async function upsertPaymentAccount(email: string, data: {
                     accountName: data.accountName,
                 }
             });
-            console.log(`[Payment] Updated existing account ${account.id}, type changed from ${existingAccount.type} to ${data.type}`);
+            console.log(`[Payment] Updated account ${account.id}`);
         } else {
             // Create new account
             account = await prisma.paymentAccount.create({
@@ -60,6 +74,9 @@ export async function upsertPaymentAccount(email: string, data: {
             });
             console.log(`[Payment] Created new account: ${account.id}`);
         }
+
+        // Revalidate the profile page to ensure fresh data
+        revalidatePath('/profile');
 
         return { success: true, account };
     } catch (error: any) {

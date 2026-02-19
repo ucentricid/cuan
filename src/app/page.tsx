@@ -21,6 +21,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getReferralCode } from '@/app/actions/referral';
 import { getPaymentHistory, PaymentHistoryItem } from '@/app/actions/payment-history';
 import { getWithdrawableBalance, createWithdrawal } from '@/app/actions/withdraw';
+import { getPaymentAccounts } from '@/app/actions/payment';
+import { WithdrawalModal } from '@/components/ui/WithdrawalModal';
 
 export default function Dashboard() {
   const [period, setPeriod] = useState('daily');
@@ -29,6 +31,8 @@ export default function Dashboard() {
   const [referralUrl, setReferralUrl] = useState<string>('');
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
   const [copied, setCopied] = useState(false);
+  const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
+  const [bankAccount, setBankAccount] = useState<any>(null);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -47,6 +51,12 @@ export default function Dashboard() {
       getPaymentHistory(userEmail).then(result => {
         if (result.success && result.data) {
           setPaymentHistory(result.data);
+        }
+      });
+
+      getPaymentAccounts(userEmail).then(result => {
+        if (result.success && result.account) {
+          setBankAccount(result.account);
         }
       });
     }
@@ -203,28 +213,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div className="flex gap-2.5">
                     <button
-                      onClick={async () => {
-                        if (balance <= 0) {
-                          alert('Saldo Anda kosong atau belum memenuhi syarat penarikan.');
-                          return;
-                        }
-                        if (confirm(`Apakah Anda yakin ingin menarik dana sebesar Rp ${balance.toLocaleString('id-ID')}?`)) {
-                          // Example bank details - in real app would come from modal/user profile
-                          const result = await createWithdrawal(userEmail || '', {
-                            bankName: 'BCA',
-                            accountNumber: '1234567890',
-                            accountName: 'User Account'
-                          });
-
-                          if (result.success) {
-                            alert('Permintaan penarikan berhasil dibuat!');
-                            setBalance(0); // Optimistic update
-                            // Re-fetch history?
-                          } else {
-                            alert('Gagal: ' + result.message);
-                          }
-                        }
-                      }}
+                      onClick={() => setIsWithdrawalModalOpen(true)}
                       className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-lg shadow-blue-500/20 active:scale-95 transition-all">
                       Tarik Dana <ArrowUpRight size={16} />
                     </button>
@@ -290,6 +279,42 @@ export default function Dashboard() {
           </AnimatePresence>
         </>
       )}
+
+      {/* Withdrawal Modal */}
+      <WithdrawalModal
+        isOpen={isWithdrawalModalOpen}
+        onClose={() => setIsWithdrawalModalOpen(false)}
+        balance={balance}
+        bankDetails={bankAccount ? {
+          bankName: bankAccount.providerName,
+          accountNumber: bankAccount.accountNumber,
+          accountName: bankAccount.accountName
+        } : undefined}
+        onConfirm={async () => {
+          if (!bankAccount) {
+            throw new Error('Belum ada rekening terhubung. Silahkan atur di halaman Profil.');
+          }
+          const result = await createWithdrawal(userEmail || '', {
+            bankName: bankAccount.providerName,
+            accountNumber: bankAccount.accountNumber,
+            accountName: bankAccount.accountName
+          });
+
+          if (result.success) {
+            setBalance(0); // Optimistic update
+            // Optionally refetch history
+            if (userEmail) {
+              getPaymentHistory(userEmail).then(result => {
+                if (result.success && result.data) {
+                  setPaymentHistory(result.data);
+                }
+              });
+            }
+          } else {
+            throw new Error(result.message);
+          }
+        }}
+      />
 
       {/* Bottom Navigation removed - handled globally */}
     </div>
