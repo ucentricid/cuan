@@ -238,7 +238,7 @@ export default function DompetPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
                         onClick={() => setConfirmCancelId(null)}
                     >
                         <motion.div
@@ -246,13 +246,13 @@ export default function DompetPage() {
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl"
+                            className="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl"
                         >
-                            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-4 mx-auto">
-                                <AlertCircle size={24} />
+                            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-3 mx-auto">
+                                <AlertCircle size={20} />
                             </div>
-                            <h3 className="text-lg font-black text-slate-900 text-center mb-2">Batalkan Penarikan?</h3>
-                            <p className="text-xs text-slate-500 text-center font-medium leading-relaxed mb-6">
+                            <h3 className="text-lg font-black text-slate-900 text-center mb-1">Batalkan Penarikan?</h3>
+                            <p className="text-xs text-slate-500 text-center font-medium leading-relaxed mb-5">
                                 Tindakan ini tidak dapat dibatalkan. Penarikan akan dihapus secara permanen.
                             </p>
                             <div className="grid grid-cols-2 gap-3">
